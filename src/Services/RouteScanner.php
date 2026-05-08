@@ -59,6 +59,9 @@ class RouteScanner
 
             $rules = $this->extractRules($controllerClass, $controllerMethod);
             $pathParams = $this->extractPathParams($route);
+            $hasFile = collect($rules)->contains(fn($rule) =>
+                is_string($rule) && (str_contains($rule, 'file') || str_contains($rule, 'image'))
+            );
 
             $result->push([
                 'methods' => $methods,
@@ -70,6 +73,7 @@ class RouteScanner
                 'middleware' => $route->middleware(),
                 'rules' => $rules,
                 'pathParams' => $pathParams,
+                'has_file' => $hasFile,
             ]);
         }
 
