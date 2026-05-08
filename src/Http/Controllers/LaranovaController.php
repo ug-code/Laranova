@@ -19,7 +19,12 @@ class LaranovaController extends Controller
 
     public function index(): View
     {
-        return view('laranova::laranova');
+        return view('laranova::laranova', [
+            'defaultHeaders' => config('laranova.default_headers', []),
+            'autoContentType' => config('laranova.auto_content_type', true),
+            'security' => config('laranova.security', []),
+            'defaultVariables' => config('laranova.default_variables', []),
+        ]);
     }
 
     public function resolve(Request $request): JsonResponse
@@ -31,6 +36,9 @@ class LaranovaController extends Controller
             'headers.*.key' => 'nullable|string',
             'headers.*.value' => 'nullable|string',
             'body' => 'nullable|string',
+            'query_params' => 'nullable|array',
+            'query_params.*.key' => 'nullable|string',
+            'query_params.*.value' => 'nullable|string',
             'pre_scripts' => 'nullable|string',
         ]);
 
@@ -39,11 +47,21 @@ class LaranovaController extends Controller
             ->pluck('value', 'key')
             ->toArray();
 
+        $rawQueryParams = collect($validated['query_params'] ?? [])
+            ->filter(fn(array $qp): bool => filled($qp['key'] ?? null))
+            ->map(fn(array $qp): array => [
+                'key' => $this->scriptParser->parse($qp['key']),
+                'value' => $this->scriptParser->parse($qp['value']),
+            ])
+            ->values()
+            ->toArray();
+
         $resolved = [
             'method' => strtoupper($validated['method']),
             'url' => $this->scriptParser->parse($validated['url']),
             'headers' => $this->scriptParser->parseArray($rawHeaders),
             'body' => $this->scriptParser->parse($validated['body'] ?? ''),
+            'query_params' => $rawQueryParams,
         ];
 
         if (($validated['pre_scripts'] ?? '') !== '') {

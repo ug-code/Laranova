@@ -35,6 +35,8 @@ class ScriptParser
         'url' => 'url',
         'date' => 'date',
         'dateTime' => 'dateTime',
+        'dateFrom' => 'dateFrom',
+        'dateTo' => 'dateTo',
         'company' => 'company',
         'boolean' => 'boolean',
         'word' => 'word',
@@ -102,6 +104,14 @@ class ScriptParser
 
         if ($method === 'dateTime') {
             return $faker->dateTime()->format('Y-m-d H:i:s');
+        }
+
+        if ($method === 'dateFrom') {
+            return $faker->dateTimeBetween('-10 years', 'now')->format('Y-m-d');
+        }
+
+        if ($method === 'dateTo') {
+            return $faker->dateTimeBetween('now', '+10 years')->format('Y-m-d');
         }
 
         return $faker->{$method}();
