@@ -75,6 +75,17 @@
                 </template>
                 <span x-text="loading ? 'Sending...' : 'Send Request'"></span>
             </button>
+            <span class="text-gray-300 text-sm">|</span>
+            <button
+                @click="copyAsCurl()"
+                :disabled="!url"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs font-mono text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                &lt;/&gt;&nbsp;cURL
+            </button>
         </div>
 
         @include('laranova::partials.tab-route-info')
