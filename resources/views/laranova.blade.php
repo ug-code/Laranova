@@ -402,7 +402,7 @@
                         const values = inMatch[1].split(',');
                         return values[Math.floor(Math.random() * values.length)];
                     }
-                    if (rule.includes('boolean')) return Math.random() > 0.5 ? true : false;
+                    if (rule.includes('boolean')) return Math.random() > 0.5 ? 1 : 0;
                     const name = fieldName.split('.').pop();
                     if (name.endsWith('_from')) return '@{{ @faker:date_from }}';
                     if (name.endsWith('_to')) return '@{{ @faker:date_to }}';
@@ -812,12 +812,121 @@
                     }
                 },
 
+                copyToClipboard(text) {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text).catch(() => this.copyFallback(text));
+                    } else {
+                        this.copyFallback(text);
+                    }
+                },
+
+                copyFallback(text) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch {}
+                    document.body.removeChild(ta);
+                },
+
                 copyResponse() {
                     if (!this.response) return;
                     const text = typeof this.response.body === 'string'
                         ? this.response.body
                         : JSON.stringify(this.response.body, null, 2);
-                    navigator.clipboard.writeText(text).catch(() => {});
+                    this.copyToClipboard(text);
+                },
+
+                async copyAsCurl() {
+                    if (!this.url) return;
+
+                    const rawHeaders = this.headers.filter(h => h.key.trim() !== '');
+                    const rawQueryParams = this.queryParams.filter(qp => qp.key.trim() !== '' && qp.enabled !== false);
+                    const resolvedUrl = this.replaceVariables(this.url);
+                    const resolvedBody = this.replaceVariables(
+                        ['POST', 'PUT', 'PATCH'].includes(this.method) ? this.body : ''
+                    );
+                    const resolvedHeaders = rawHeaders.map(h => ({
+                        key: this.replaceVariables(h.key),
+                        value: this.replaceVariables(h.value),
+                    }));
+                    const resolvedQueryParams = rawQueryParams.map(qp => ({
+                        key: this.replaceVariables(qp.key),
+                        value: this.replaceVariables(qp.value),
+                    }));
+
+                    let fakerResolved;
+                    try {
+                        const resp = await fetch('/laranova/resolve', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                            body: JSON.stringify({
+                                method: this.method,
+                                url: resolvedUrl,
+                                headers: resolvedHeaders,
+                                body: resolvedBody,
+                                query_params: resolvedQueryParams,
+                                pre_scripts: '',
+                            }),
+                        });
+                        if (!resp.ok) throw new Error('resolve failed');
+                        fakerResolved = await resp.json();
+                    } catch {
+                        // fallback: use var-resolved values as-is (faker tags remain unresolved)
+                        fakerResolved = {
+                            method: this.method,
+                            url: resolvedUrl,
+                            headers: Object.fromEntries(resolvedHeaders.map(h => [h.key, h.value])),
+                            body: resolvedBody,
+                            query_params: resolvedQueryParams,
+                        };
+                    }
+
+                    const parts = ['curl'];
+
+                    if (fakerResolved.method !== 'GET') {
+                        parts.push('-X ' + fakerResolved.method);
+                    }
+
+                    let finalUrl = fakerResolved.url;
+                    const qpArray = fakerResolved.query_params || [];
+                    if (qpArray.length > 0) {
+                        const qs = qpArray.map(qp =>
+                            encodeURIComponent(qp.key) + '=' + encodeURIComponent(qp.value)
+                        ).join('&');
+                        finalUrl += (finalUrl.includes('?') ? '&' : '?') + qs;
+                    }
+
+                    const hasFiles = this.selectedFiles.some(f => f.file);
+
+                    const headerObj = fakerResolved.headers || {};
+                    Object.entries(headerObj).forEach(([key, val]) => {
+                        if (hasFiles && key.toLowerCase() === 'content-type') return;
+                        if (key) parts.push("-H '" + key.replace(/'/g, "'\\''") + ': ' + String(val).replace(/'/g, "'\\''") + "'");
+                    });
+
+                    if (hasFiles) {
+                        try {
+                            const parsed = JSON.parse(fakerResolved.body || '{}');
+                            Object.entries(parsed).forEach(([k, v]) => {
+                                if (v !== null && v !== undefined) {
+                                    parts.push("--form '" + k + '=' + String(v).replace(/'/g, "'\\''") + "'");
+                                }
+                            });
+                        } catch {}
+                        this.selectedFiles.forEach(f => {
+                            if (f.file) parts.push("--form '" + f.key + '=@' + f.file.name + "'");
+                        });
+                    } else if (['POST', 'PUT', 'PATCH'].includes(fakerResolved.method) && fakerResolved.body) {
+                        parts.push("--data-raw '" + fakerResolved.body.replace(/'/g, "'\\''") + "'");
+                    }
+
+                    parts.push('--insecure');
+
+                    const cmd = parts.join(' \\\n  ');
+                    this.copyToClipboard(cmd);
                 },
 
                 // ── Colors ──
