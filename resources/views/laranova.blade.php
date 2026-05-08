@@ -91,6 +91,7 @@
                                 <button
                                     @click="loadRoute(route)"
                                     x-show="openGroups.includes(group.prefix)"
+                                    :data-route-key="route.methods[0] + '-' + route.uri"
                                     class="w-full text-left px-4 py-2.5 pl-8 hover:bg-gray-50 transition-colors border-t border-gray-50"
                                 >
                                     <div class="flex items-center gap-2 min-w-0">
@@ -100,6 +101,7 @@
                                             x-text="route.methods[0]"
                                         ></span>
                                         <span class="text-[11px] font-mono text-gray-600 truncate" x-text="route.uri"></span>
+                                        <span x-show="route.has_file" class="text-[9px] font-mono text-amber-600 bg-amber-50 px-1 rounded shrink-0">file</span>
                                     </div>
                                     <div x-show="route.middleware && route.middleware.length" class="flex items-center gap-1 mt-1 ml-7">
                                         <template x-for="mw in route.middleware.slice(0, 3)" :key="mw">
@@ -186,8 +188,38 @@
                     </div>
                 </div>
 
+                {{-- Tabs --}}
+                <div class="flex gap-0 border-b border-gray-200">
+                    <button
+                        @click="builderTab = 'headers'"
+                        class="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                        :class="builderTab === 'headers' ? 'text-indigo-600 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-600'"
+                    >Headers</button>
+                    <button
+                        @click="builderTab = 'query'"
+                        class="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                        :class="builderTab === 'query' ? 'text-indigo-600 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-600'"
+                    >Query Params</button>
+                    <button
+                        x-show="['POST', 'PUT', 'PATCH'].includes(method)"
+                        @click="builderTab = 'body'"
+                        class="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                        :class="builderTab === 'body' ? 'text-indigo-600 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-600'"
+                    >Body</button>
+                    <button
+                        @click="builderTab = 'scripts'"
+                        class="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                        :class="builderTab === 'scripts' ? 'text-indigo-600 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-600'"
+                    >Pre-scripts</button>
+                    <button
+                        @click="builderTab = 'route_info'"
+                        class="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                        :class="builderTab === 'route_info' ? 'text-indigo-600 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-600'"
+                    >Route Info</button>
+                </div>
+
                 {{-- Headers --}}
-                <div>
+                <div x-show="builderTab === 'headers'">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Headers</label>
                         <button
@@ -225,12 +257,12 @@
                 </div>
 
                 {{-- Query Params --}}
-                <div>
+                <div x-show="builderTab === 'query'">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Query Params</label>
                         <div class="flex items-center gap-2">
                             <button
-                                x-show="originalQueryParams.length > 0"
+                                x-show="queryParams.length > 0"
                                 @click="resetQueryParams()"
                                 class="text-[11px] text-gray-400 hover:text-indigo-600 transition-colors"
                                 title="Reset to defaults"
@@ -277,7 +309,17 @@
                 </div>
 
                 {{-- Body --}}
-                <div x-show="['POST', 'PUT', 'PATCH'].includes(method)">
+                <div x-show="builderTab === 'body' && ['POST', 'PUT', 'PATCH'].includes(method)">
+                    <div class="flex items-start gap-3 p-3 mb-3 rounded-lg bg-amber-50 border border-amber-200" x-show="hasFileUpload">
+                        <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div class="text-xs text-amber-800">
+                            <p class="font-semibold">This request requires a file upload.</p>
+                            <p class="mt-0.5 text-amber-700">All fields will be sent as <span class="font-mono font-semibold">multipart/form-data</span></p>
+                        </div>
+                    </div>
+
                     <div class="flex items-center justify-between mb-2">
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Body</label>
                         <button
@@ -293,10 +335,35 @@
                         placeholder='{"key": "value"}'
                         class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-mono text-gray-700 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 outline-none resize-y"
                     ></textarea>
+
+                    <div x-show="hasFileUpload && selectedFiles.length > 0" class="mt-4 space-y-3">
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</label>
+                        <template x-for="(f, i) in selectedFiles" :key="i">
+                            <div class="flex gap-2 items-center">
+                                <input
+                                    type="text"
+                                    x-model="f.key"
+                                    placeholder="field name"
+                                    class="w-36 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-700 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 outline-none"
+                                />
+                                <input
+                                    type="file"
+                                    @change="f.file = $event.target.files[0]; f.name = $event.target.files[0]?.name || ''"
+                                    class="flex-1 text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                />
+                                <button @click="selectedFiles.splice(i, 1)" class="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </template>
+                        <button @click="selectedFiles.push({ key: '', file: null, name: '' })" class="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors">+ Add File</button>
+                    </div>
                 </div>
 
                 {{-- Pre-scripts --}}
-                <div>
+                <div x-show="builderTab === 'scripts'">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pre-scripts</label>
                         <span class="text-[10px] text-gray-400 font-mono">pm.* API</span>
@@ -338,54 +405,51 @@
                     </button>
                 </div>
 
-                {{-- Route Info --}}
-                <div x-show="selectedRoute" x-data="{ infoOpen: true }" class="border border-gray-200 rounded-lg overflow-hidden">
-                    <button
-                        @click="infoOpen = !infoOpen"
-                        class="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wider"
-                    >
-                        <span>Route Info</span>
-                        <svg
-                            class="w-3 h-3 text-gray-400 transition-transform"
-                            :class="{'rotate-180': infoOpen}"
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div x-show="infoOpen" class="px-4 py-3 space-y-2 text-xs font-mono">
-                        <div x-show="selectedRoute.controller">
-                            <span class="text-gray-400">Controller: </span>
-                            <span class="text-indigo-600" x-text="selectedRoute.controller + '@' + selectedRoute.action"></span>
+                {{-- Route Info (Tab) --}}
+                <div x-show="builderTab === 'route_info'" x-cloak>
+                    <template x-if="!selectedRoute">
+                        <div class="text-center py-12">
+                            <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                            <p class="text-sm text-gray-400">Select a route to view details.</p>
                         </div>
-                        <div x-show="selectedRoute.middleware && selectedRoute.middleware.length">
-                            <span class="text-gray-400 block mb-1">Middleware:</span>
-                            <div class="space-y-0.5 ml-2">
-                                <template x-for="mw in selectedRoute.middleware" :key="mw">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="w-1 h-1 rounded-full bg-gray-300 shrink-0"></span>
-                                        <span class="text-gray-600 break-all text-[11px]" x-text="mw"></span>
-                                    </div>
-                                </template>
+                    </template>
+                    <template x-if="selectedRoute">
+                        <div class="space-y-4 text-xs font-mono">
+                            <div>
+                                <span class="text-gray-400">Controller: </span>
+                                <span class="text-indigo-600 font-semibold" x-text="selectedRoute.controller + '@' + selectedRoute.action"></span>
+                            </div>
+                            <div x-show="selectedRoute.middleware && selectedRoute.middleware.length">
+                                <span class="text-gray-400 block mb-1.5">Middleware:</span>
+                                <div class="space-y-1">
+                                    <template x-for="mw in selectedRoute.middleware" :key="mw">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0"></span>
+                                            <span class="text-gray-600 break-all text-[11px]" x-text="mw"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div x-show="selectedRoute.pathParams && selectedRoute.pathParams.length">
+                                <span class="text-gray-400">Path Params: </span>
+                                <span class="text-gray-600" x-text="selectedRoute.pathParams.join(', ')"></span>
+                            </div>
+                            <div x-show="Object.keys(selectedRoute.rules || {}).length > 0">
+                                <span class="text-gray-400 block mb-1.5">Validation Rules:</span>
+                                <div class="space-y-1.5">
+                                    <template x-for="(rule, field) in selectedRoute.rules" :key="field">
+                                        <div class="flex gap-2">
+                                            <span class="text-green-600 shrink-0 font-semibold" x-text="field"></span>
+                                            <span class="text-gray-500">:</span>
+                                            <span class="text-gray-500 break-all" x-text="rule"></span>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </div>
-                        <div x-show="selectedRoute.pathParams && selectedRoute.pathParams.length">
-                            <span class="text-gray-400">Path Params: </span>
-                            <span class="text-gray-600" x-text="selectedRoute.pathParams.join(', ')"></span>
-                        </div>
-                        <div x-show="Object.keys(selectedRoute.rules || {}).length > 0">
-                            <span class="text-gray-400 block mb-1">Validation Rules:</span>
-                            <div class="space-y-1">
-                                <template x-for="(rule, field) in selectedRoute.rules" :key="field">
-                                    <div class="flex gap-2">
-                                        <span class="text-green-600 shrink-0" x-text="field"></span>
-                                        <span class="text-gray-500">:</span>
-                                        <span class="text-gray-500 break-all" x-text="rule"></span>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
+                    </template>
                 </div>
             </div>
         </main>
@@ -453,6 +517,49 @@
                                 <template x-if="Object.keys(response.headers).length === 0">
                                     <p class="text-[11px] text-gray-600 italic">No headers</p>
                                 </template>
+                            </div>
+                        </div>
+
+                        {{-- Sent Payload --}}
+                        <div x-data="{ open: false }" class="border-b border-gray-800">
+                            <button
+                                @click="open = !open"
+                                class="w-full px-5 py-2.5 flex items-center justify-between text-xs text-gray-400 hover:text-gray-200 transition-colors"
+                            >
+                                <span class="font-semibold uppercase tracking-wider">Payload</span>
+                                <svg
+                                    class="w-3.5 h-3.5 transition-transform"
+                                    :class="{'rotate-180': open}"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="open" class="px-5 pb-3 space-y-2">
+                                <div class="text-[11px] font-mono">
+                                    <span class="text-gray-500">Method: </span>
+                                    <span class="text-white" x-text="sentPayload.method"></span>
+                                </div>
+                                <div class="text-[11px] font-mono break-all">
+                                    <span class="text-gray-500">URL: </span>
+                                    <span class="text-gray-300" x-text="sentPayload.url"></span>
+                                </div>
+                                <div x-show="Object.keys(sentPayload.headers).length > 0">
+                                    <span class="text-[11px] text-gray-500 font-mono block mb-1">Headers:</span>
+                                    <div class="space-y-0.5 ml-2">
+                                        <template x-for="(value, key) in sentPayload.headers" :key="key">
+                                            <div class="text-[11px] font-mono">
+                                                <span class="text-indigo-400" x-text="key"></span>
+                                                <span class="text-gray-600">: </span>
+                                                <span class="text-gray-300 break-all" x-text="value"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div x-show="sentPayload.body">
+                                    <span class="text-[11px] text-gray-500 font-mono block mb-1">Body:</span>
+                                    <pre class="text-[11px] font-mono leading-relaxed text-gray-300 whitespace-pre-wrap break-all ml-2" x-text="sentPayload.body"></pre>
+                                </div>
                             </div>
                         </div>
 
@@ -586,14 +693,18 @@
                 originalQueryParams: [],
                 originalBody: '',
                 body: '',
+                hasFileUpload: false,
+                selectedFiles: [],
                 preScripts: '',
                 loading: false,
                 response: null,
+                sentPayload: null,
                 history: [],
                 methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
 
                 // ── UI State ──
                 settingsOpen: false,
+                builderTab: 'headers',
 
                 // ── Variables ──
                 variables: {},
@@ -694,9 +805,44 @@
                         .then(data => {
                             this.routes = data.routes || [];
                             this.buildGroups();
+                            this.restoreLastRoute();
                         })
                         .catch(() => {})
                         .finally(() => { this.loadingRoutes = false; });
+                },
+
+                restoreLastRoute() {
+                    const savedMethod = localStorage.getItem('laranova_method');
+                    const savedUrl = localStorage.getItem('laranova_url');
+                    if (!savedMethod || !savedUrl) return;
+
+                    for (const group of this.routeGroups) {
+                        const route = group.routes.find(r =>
+                            r.uri === savedUrl && (r.methods || []).includes(savedMethod)
+                        );
+                        if (route) {
+                            if (!this.openGroups.includes(group.prefix)) {
+                                this.openGroups.push(group.prefix);
+                            }
+                            this.loadRoute(route);
+                            this.method = savedMethod;
+                            this.url = savedUrl;
+                            localStorage.setItem('laranova_method', savedMethod);
+                            localStorage.setItem('laranova_url', savedUrl);
+                            setTimeout(() => {
+                                const key = savedMethod + '-' + savedUrl;
+                                const el = document.querySelector(`[data-route-key="${key}"]`);
+                                if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                            }, 50);
+                            return;
+                        }
+                    }
+
+                    // Route not found — still ensure method/url from localStorage stick
+                    this.method = savedMethod;
+                    this.url = savedUrl;
+                    localStorage.setItem('laranova_method', savedMethod);
+                    localStorage.setItem('laranova_url', savedUrl);
                 },
 
                 refreshGrouping() {
@@ -767,17 +913,41 @@
                     this.url = route.uri;
                     this.selectedRoute = route;
                     this.queryParams = [];
+                    this.selectedFiles = [];
+                    this.hasFileUpload = false;
 
                     const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(this.method);
                     const rules = route.rules || {};
 
+                    this.hasFileUpload = route.has_file || false;
+
                     if (Object.keys(rules).length > 0) {
                         if (isBodyMethod) {
-                            const bodyFields = Object.entries(rules)
-                                .map(([field, rule]) => `  "${field}": "${this.inferFakerValue(rule, field)}"`)
-                                .join(',\n');
-                            if (bodyFields) {
-                                this.body = '{\n' + bodyFields + '\n}';
+                            // Split rules into body fields and file fields
+                            const entries = Object.entries(rules);
+                            const fileFields = entries.filter(([, rule]) =>
+                                rule.includes('file') || rule.includes('image')
+                            );
+                            const bodyOnlyFields = entries.filter(([, rule]) =>
+                                !(rule.includes('file') || rule.includes('image'))
+                            );
+
+                            // Pre-populate file inputs for file/image fields
+                            this.selectedFiles = fileFields.map(([field]) => {
+                                const parts = field.split('.');
+                                const key = parts.length > 1
+                                    ? parts[0] + parts.slice(1).map(p => `[${p}]`).join('')
+                                    : field;
+                                return { key, file: null, name: '' };
+                            });
+
+                            // Build body JSON from non-file fields only
+                            if (bodyOnlyFields.length > 0) {
+                                this.body = '{\n' + bodyOnlyFields
+                                    .map(([field, rule]) => `  "${field}": "${this.inferFakerValue(rule, field)}"`)
+                                    .join(',\n') + '\n}';
+                            } else {
+                                this.body = '';
                             }
                             this.originalBody = this.body;
                             this.originalQueryParams = [];
@@ -887,6 +1057,7 @@
                             },
                             unset: (key) => { self.removeVariable(key); },
                             clear: () => { self.variables = {}; },
+                            replace: (str) => self.replaceVariables(str),
                         },
                         environment: {
                             get: (key) => localStorage.getItem('laranova_env_' + key),
@@ -1045,6 +1216,8 @@
                             value: this.replaceVariables(qp.value),
                         }));
 
+                        const hasFiles = this.selectedFiles.some(f => f.file);
+
                         // Step 2: Resolve faker tags via BE
                         const resolveResp = await fetch('/laranova/resolve', {
                             method: 'POST',
@@ -1077,22 +1250,73 @@
                         }
 
                         // Step 3: Send direct request to target API
-                        const fetchOptions = {
-                            method: fakerResolved.method,
-                            headers: { ...fakerResolved.headers },
-                        };
-
-                        if (['POST', 'PUT', 'PATCH'].includes(fakerResolved.method) && fakerResolved.body) {
-                            fetchOptions.body = fakerResolved.body;
-                            if (@json($autoContentType)) {
-                                const hasContentType = Object.keys(fetchOptions.headers).some(
-                                    h => h.toLowerCase() === 'content-type'
-                                );
-                                if (!hasContentType) {
-                                    fetchOptions.headers['Content-Type'] = 'application/json';
+                        let fetchOptions;
+                        let debugBody;
+                        if (hasFiles) {
+                            const formData = new FormData();
+                            const toFormKey = (k) => {
+                                const parts = k.split('.');
+                                return parts.length > 1
+                                    ? parts[0] + parts.slice(1).map(p => `[${p}]`).join('')
+                                    : k;
+                            };
+                            // Parse resolved body JSON and append each field to FormData
+                            if (fakerResolved.body) {
+                                try {
+                                    const parsedBody = JSON.parse(fakerResolved.body);
+                                    Object.entries(parsedBody).forEach(([k, v]) => {
+                                        if (v !== null && v !== undefined) {
+                                            formData.append(toFormKey(k), String(v));
+                                        }
+                                    });
+                                } catch {}
+                            }
+                            // Append files (overwrites any body field with same key)
+                            this.selectedFiles.forEach(f => {
+                                if (f.file) formData.append(f.key, f.file);
+                            });
+                            fetchOptions = {
+                                method: fakerResolved.method,
+                                headers: Object.fromEntries(
+                                    Object.entries(fakerResolved.headers).filter(
+                                        ([k]) => k.toLowerCase() !== 'content-type'
+                                    )
+                                ),
+                                body: formData,
+                            };
+                            debugBody = '[FormData]';
+                        } else {
+                            fetchOptions = {
+                                method: fakerResolved.method,
+                                headers: { ...fakerResolved.headers },
+                            };
+                            if (['POST', 'PUT', 'PATCH'].includes(fakerResolved.method) && fakerResolved.body) {
+                                fetchOptions.body = fakerResolved.body;
+                                debugBody = fakerResolved.body;
+                                if (@json($autoContentType)) {
+                                    const hasContentType = Object.keys(fetchOptions.headers).some(
+                                        h => h.toLowerCase() === 'content-type'
+                                    );
+                                    if (!hasContentType) {
+                                        fetchOptions.headers['Content-Type'] = 'application/json';
+                                    }
                                 }
+                            } else {
+                                debugBody = '';
                             }
                         }
+
+                        // Save sent payload for Payload tab
+                        const sentHeaders = { ...fetchOptions.headers };
+                        if (hasFiles) {
+                            sentHeaders['Content-Type'] = 'multipart/form-data';
+                        }
+                        this.sentPayload = {
+                            method: fakerResolved.method,
+                            url: finalUrl,
+                            headers: sentHeaders,
+                            body: debugBody,
+                        };
 
                         const response = await fetch(finalUrl, fetchOptions);
                         const body = await response.text();
@@ -1133,18 +1357,20 @@
                             error: true,
                         };
 
-                        await fetch('/laranova/history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                            body: JSON.stringify({
-                                method: this.method,
-                                url: this.url,
-                                status: 0,
-                                duration: this.response.duration,
-                                error: true,
-                            }),
-                        }).catch(() => {});
-                    } finally {
+                            await fetch('/laranova/history', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                body: JSON.stringify({
+                                    method: this.method,
+                                    url: this.url,
+                                    status: 0,
+                                    duration: this.response.duration,
+                                    error: true,
+                                }),
+                            }).catch(() => {});
+
+                            this.loadHistoryFromSession();
+                        } finally {
                         this.loading = false;
                     }
                 },
