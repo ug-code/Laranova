@@ -24,6 +24,11 @@
 
         <div class="flex gap-1">
             <button
+                @click="builderTab = 'route_info'"
+                class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2"
+                :class="builderTab === 'route_info' ? 'text-[#a78bfa] border-[#667eea]' : 'text-gray-500 hover:text-gray-300 border-transparent'"
+            >Route Info</button>
+            <button
                 @click="builderTab = 'headers'"
                 class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2"
                 :class="builderTab === 'headers' ? 'text-[#a78bfa] border-[#667eea]' : 'text-gray-500 hover:text-gray-300 border-transparent'"
@@ -44,19 +49,14 @@
                 class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2"
                 :class="builderTab === 'scripts' ? 'text-[#a78bfa] border-[#667eea]' : 'text-gray-500 hover:text-gray-300 border-transparent'"
             >Pre-scripts</button>
-            <button
-                @click="builderTab = 'route_info'"
-                class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2"
-                :class="builderTab === 'route_info' ? 'text-[#a78bfa] border-[#667eea]' : 'text-gray-500 hover:text-gray-300 border-transparent'"
-            >Route Info</button>
         </div>
 
         <div class="min-h-0">
+            @include('laranova::partials.tab-route-info')
             @include('laranova::partials.tab-headers')
             @include('laranova::partials.tab-query-params')
             @include('laranova::partials.tab-body')
             @include('laranova::partials.tab-pre-scripts')
-            @include('laranova::partials.tab-route-info')
         </div>
 
         <div class="flex items-center gap-3 pt-1">
