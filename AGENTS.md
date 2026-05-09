@@ -2,7 +2,7 @@
 
 ## Package type
 
-This is a **Laravel package** (`type: library`), not a Laravel app. Consumers install it via `composer require --dev laranova/laranova`. It has no artisan commands, no migrations, no build step.
+This is a **Laravel package** (`type: library`), not a Laravel app. Consumers install it via `composer require --dev ug-code/laranova`. It has no artisan commands, no migrations, no build step.
 
 ## Namespace & autoloading
 
