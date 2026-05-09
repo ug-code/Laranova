@@ -1,0 +1,121 @@
+name: Bug Report
+description: Report a bug or unexpected behaviour in Laranova
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report. Please provide as much detail as possible.
+
+  - type: input
+    id: laranova_version
+    attributes:
+      label: Laranova Version
+      description: What version of Laranova are you running? (check composer.json or Packagist)
+      placeholder: v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: laravel_version
+    attributes:
+      label: Laravel Version
+      description: Which Laravel version are you using?
+      options:
+        - 12.x
+        - 11.x
+        - 10.x
+    validations:
+      required: true
+
+  - type: dropdown
+    id: php_version
+    attributes:
+      label: PHP Version
+      options:
+        - 8.4
+        - 8.3
+        - 8.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Laranova is affected?
+      options:
+        - Route Scanner (sidebar route list)
+        - Request Builder (method, URL, headers, body)
+        - Faker Tag Engine ({{ @faker:* }} parsing)
+        - Pre-scripts (pm.* API)
+        - Response Panel
+        - History
+        - cURL / Postman Export
+        - UI / Layout
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: When I click X, Y happens instead of Z...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to /laranova
+        2. Select POST method
+        3. Enter URL with {{ @faker:email }}
+        4. Click Send
+        5. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: Copy and paste any relevant logs (laravel.log, browser console).
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Screen Recordings
+      description: If applicable, add screenshots or a short recording to help explain the problem.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I am running the latest version of Laranova.
+          required: true
+        - label: I have cleared Laravel config cache (`php artisan config:clear`).
