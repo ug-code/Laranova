@@ -4,7 +4,7 @@
     "description": "Postman-like API test interface for Laravel. Pre-script Faker tags, HTTP Client wrapper, SPA UI.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["laravel", "api", "testing", "postman", "debug"],
+    "keywords": ["laravel", "api", "testing", "postman", "debug", "documentation"],
     "homepage": "https://github.com/ug-code/Laranova",
     "authors": [
         {
