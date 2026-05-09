@@ -1,13 +1,15 @@
 
 {
-    "name": "laranova/laranova",
+    "name": "ug-code/laranova",
     "description": "Postman-like API test interface for Laravel. Pre-script Faker tags, HTTP Client wrapper, SPA UI.",
     "type": "library",
     "license": "MIT",
     "keywords": ["laravel", "api", "testing", "postman", "debug"],
+    "homepage": "https://github.com/ug-code/Laranova",
     "authors": [
         {
-            "name": "ug-code"
+            "name": "ug-code",
+            "homepage": "https://github.com/ug-code"
         }
     ],
     "require": {
