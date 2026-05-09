@@ -6,11 +6,21 @@
     <title>Laranova — API Test Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(102, 126, 234, 0.3); border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(102, 126, 234, 0.5); }
+        * { scrollbar-width: thin; scrollbar-color: rgba(102, 126, 234, 0.3) transparent; }
+        .glow-border { box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.15); }
+        .glow-border:hover { box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3); }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.2); } 50% { box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.5), 0 0 20px rgba(102, 126, 234, 0.15); } }
+        .glow-pulse { animation: pulse-glow 2s ease-in-out infinite; }
+    </style>
 </head>
-<body class="h-full overflow-hidden bg-gray-50 font-sans antialiased">
+<body class="h-full overflow-hidden bg-gradient-to-br from-[#0f0c29] via-[#1a1a3e] to-[#24243e] font-sans antialiased">
     <div class="flex h-full" x-data="laranova()" x-cloak>
-        <style>[x-cloak] { display: none !important; }</style>
-
         @include('laranova::components.left-sidebar')
         @include('laranova::components.center-panel')
         @include('laranova::components.right-panel')
@@ -54,7 +64,7 @@
                 openGroups: [],
                 loadingRoutes: false,
                 selectedRoute: null,
-                groupBy: 'prefix',
+                groupBy: 'controller',
                 sortBy: 'uri',
 
                 init() {
@@ -104,7 +114,7 @@
 
                         const sec = @json($security);
                         if (sec.type === 'bearer' && !this.headers.some(h => h.key.toLowerCase() === 'authorization')) {
-                            this.headers.unshift({ key: 'Authorization', value: 'Bearer ' });
+                            this.headers.unshift({ key: 'Authorization', value: 'Bearer @{{bearerToken}}' });
                         }
                     }
                     this.$watch('headers', val => {
@@ -315,8 +325,8 @@
                     }
                     if (rule.includes('boolean')) return Math.random() > 0.5 ? '1' : '0';
                     const name = fieldName.split('.').pop();
-                    if (name.endsWith('_from')) return '@{{ @faker:date_from }}';
-                    if (name.endsWith('_to')) return '@{{ @faker:date_to }}';
+                    if (name.endsWith('_from')) return '@{{ @faker:dateFrom }}';
+                    if (name.endsWith('_to')) return '@{{ @faker:dateTo }}';
                     if (name.endsWith('_id')) return '@{{ @faker:int }}';
                     if (rule.includes('email')) return '@{{ @faker:email }}';
                     if (rule.includes('url')) return '@{{ @faker:url }}';
@@ -404,8 +414,8 @@
                     }
                     if (rule.includes('boolean')) return Math.random() > 0.5 ? 1 : 0;
                     const name = fieldName.split('.').pop();
-                    if (name.endsWith('_from')) return '@{{ @faker:date_from }}';
-                    if (name.endsWith('_to')) return '@{{ @faker:date_to }}';
+                    if (name.endsWith('_from')) return '@{{ @faker:dateFrom }}';
+                    if (name.endsWith('_to')) return '@{{ @faker:dateTo }}';
                     if (name.endsWith('_id')) return 1;
                     if (rule.includes('email')) return '@{{ @faker:email }}';
                     if (rule.includes('url')) return '@{{ @faker:url }}';
@@ -479,8 +489,15 @@
                         },
                         environment: {
                             get: (key) => localStorage.getItem('laranova_env_' + key),
-                            set: (key, val) => localStorage.setItem('laranova_env_' + key, val),
-                            unset: (key) => localStorage.removeItem('laranova_env_' + key),
+                            set: (key, val) => {
+                                localStorage.setItem('laranova_env_' + key, val);
+                                self.variables = { ...self.variables, [key]: val };
+                            },
+                            unset: (key) => {
+                                localStorage.removeItem('laranova_env_' + key);
+                                const { [key]: _, ...rest } = self.variables;
+                                self.variables = rest;
+                            },
                             clear: () => {
                                 const keys = Object.keys(localStorage).filter(k => k.startsWith('laranova_env_'));
                                 keys.forEach(k => localStorage.removeItem(k));
@@ -831,6 +848,14 @@
                     document.body.removeChild(ta);
                 },
 
+                clearLocalStorage() {
+                    if (!confirm('Clear all saved data (headers, variables, history) and reload?')) return;
+                    const keys = Object.keys(localStorage).filter(k => k.startsWith('laranova_'));
+                    keys.forEach(k => localStorage.removeItem(k));
+                    this.settingsOpen = false;
+                    location.reload();
+                },
+
                 copyResponse() {
                     if (!this.response) return;
                     const text = typeof this.response.body === 'string'
@@ -929,6 +954,116 @@
                     this.copyToClipboard(cmd);
                 },
 
+                copyAsPostman() {
+                    if (!this.url) return;
+
+                    const rawHeaders = this.headers.filter(h => h.key.trim() !== '');
+                    const rawQPs = this.queryParams.filter(qp => qp.key.trim() !== '' && qp.enabled !== false);
+
+                    // Parse URL
+                    let urlObj = { raw: this.url };
+                    try {
+                        const parsed = new URL(this.url);
+                        urlObj.protocol = parsed.protocol.replace(':', '');
+                        urlObj.host = parsed.hostname.split('.');
+                        if (parsed.port) urlObj.port = parsed.port;
+                        urlObj.path = parsed.pathname.split('/').filter(Boolean);
+                        if (parsed.search) {
+                            const existing = [];
+                            parsed.searchParams.forEach((v, k) => existing.push({ key: k, value: v }));
+                            if (existing.length > 0) urlObj.query = existing;
+                        }
+                    } catch {}
+
+                    // Merge query params from UI into URL query
+                    if (rawQPs.length > 0) {
+                        const qArr = urlObj.query || [];
+                        rawQPs.forEach(qp => {
+                            if (!qArr.some(q => q.key === qp.key)) qArr.push({ key: qp.key, value: qp.value });
+                        });
+                        urlObj.query = qArr;
+                        // Rebuild raw URL
+                        const qs = qArr.map(q => encodeURIComponent(q.key) + '=' + encodeURIComponent(q.value)).join('&');
+                        const base = this.url.split('?')[0];
+                        urlObj.raw = base + '?' + qs;
+                    }
+
+                    // Headers in Postman format
+                    const postmanHeaders = rawHeaders.map(h => ({
+                        key: h.key,
+                        value: h.value,
+                        type: 'text',
+                    }));
+
+                    const item = {
+                        name: this.url.split('/').pop() || 'Request',
+                        request: {
+                            method: this.method,
+                            header: postmanHeaders.length > 0 ? postmanHeaders : [],
+                            url: urlObj,
+                        },
+                        event: [],
+                    };
+
+                    // Body
+                    if (['POST', 'PUT', 'PATCH'].includes(this.method) && this.body) {
+                        item.request.body = {
+                            mode: 'raw',
+                            raw: this.body,
+                            options: { raw: { language: 'json' } },
+                        };
+                    }
+
+                    // Pre-scripts
+                    if (this.preScripts && this.preScripts.trim()) {
+                        const execLines = this.preScripts.split('\n').map(l => l + '\r');
+                        item.event.push({
+                            listen: 'prerequest',
+                            script: {
+                                type: 'text/javascript',
+                                packages: {},
+                                requests: {},
+                                exec: execLines,
+                            },
+                        });
+                    }
+
+                    // Test scripts (placeholder)
+                    item.event.push({
+                        listen: 'test',
+                        script: {
+                            type: 'text/javascript',
+                            packages: {},
+                            requests: {},
+                            exec: [''],
+                        },
+                    });
+
+                    // Variables
+                    const variables = Object.entries(this.variables).map(([key, val]) => ({
+                        key,
+                        value: val,
+                        type: 'default',
+                    }));
+
+                    const collection = {
+                        info: {
+                            name: 'Laranova Export — ' + new Date().toLocaleDateString(),
+                            schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+                        },
+                        auth: {
+                            type: 'bearer',
+                            bearer: [
+                                { key: 'token', value: '@{{bearerToken}}', type: 'string' },
+                            ],
+                        },
+                        item: [item],
+                        variable: variables,
+                    };
+
+                    this.copyToClipboard(JSON.stringify(collection, null, 2));
+                },
+
                 // ── Colors ──
 
                 methodColor(m) {
@@ -941,23 +1076,23 @@
 
                 methodBgColor(m) {
                     const colors = {
-                        GET: 'text-green-700 bg-green-50 border-green-300',
-                        POST: 'text-blue-700 bg-blue-50 border-blue-300',
-                        PUT: 'text-orange-700 bg-orange-50 border-orange-300',
-                        PATCH: 'text-purple-700 bg-purple-50 border-purple-300',
-                        DELETE: 'text-red-700 bg-red-50 border-red-300',
-                        HEAD: 'text-gray-700 bg-gray-50 border-gray-300',
-                        OPTIONS: 'text-yellow-700 bg-yellow-50 border-yellow-300',
+                        GET: 'text-green-400 bg-green-500/10 border-green-500/30',
+                        POST: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+                        PUT: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+                        PATCH: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+                        DELETE: 'text-red-400 bg-red-500/10 border-red-500/30',
+                        HEAD: 'text-gray-400 bg-gray-500/10 border-gray-500/30',
+                        OPTIONS: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
                     };
-                    return colors[m] || 'text-gray-700 bg-gray-50 border-gray-300';
+                    return colors[m] || 'text-gray-400 bg-gray-500/10 border-gray-500/30';
                 },
 
                 statusColor(s) {
-                    if (s >= 200 && s < 300) return 'text-green-600';
-                    if (s >= 300 && s < 400) return 'text-blue-600';
-                    if (s >= 400 && s < 500) return 'text-orange-600';
-                    if (s >= 500) return 'text-red-600';
-                    return 'text-red-600';
+                    if (s >= 200 && s < 300) return 'text-green-400';
+                    if (s >= 300 && s < 400) return 'text-blue-400';
+                    if (s >= 400 && s < 500) return 'text-orange-400';
+                    if (s >= 500) return 'text-red-400';
+                    return 'text-red-400';
                 },
 
                 statusBadgeColor(s) {
