@@ -109,8 +109,8 @@
                     } else {
                         const defaults = @json($defaultHeaders);
                         this.headers = Object.keys(defaults).length > 0
-                            ? Object.entries(defaults).map(([k, v]) => ({ key: k, value: v }))
-                            : [{ key: '', value: '' }];
+                            ? Object.entries(defaults).map(([k, v]) => ({ key: k, value: v, enabled: true }))
+                            : [{ key: '', value: '', enabled: true }];
 
                         const sec = @json($security);
                         if (sec.type === 'bearer' && !this.headers.some(h => h.key.toLowerCase() === 'authorization')) {
@@ -587,7 +587,7 @@
                 // ── Headers ──
 
                 addHeader() {
-                    this.headers.push({ key: '', value: '' });
+                    this.headers.push({ key: '', value: '', enabled: true });
                 },
 
                 removeHeader(index) {
@@ -634,7 +634,7 @@
                             return;
                         }
 
-                        const rawHeaders = this.headers.filter(h => h.key.trim() !== '');
+                        const rawHeaders = this.headers.filter(h => h.key.trim() !== '' && h.enabled !== false);
                         const rawQueryParams = this.queryParams.filter(qp => qp.key.trim() !== '' && qp.enabled !== false);
                         const resolvedUrl = this.replaceVariables(this.url);
                         const resolvedBody = this.replaceVariables(
@@ -867,7 +867,7 @@
                 async copyAsCurl() {
                     if (!this.url) return;
 
-                    const rawHeaders = this.headers.filter(h => h.key.trim() !== '');
+                    const rawHeaders = this.headers.filter(h => h.key.trim() !== '' && h.enabled !== false);
                     const rawQueryParams = this.queryParams.filter(qp => qp.key.trim() !== '' && qp.enabled !== false);
                     const resolvedUrl = this.replaceVariables(this.url);
                     const resolvedBody = this.replaceVariables(
@@ -957,7 +957,7 @@
                 copyAsPostman() {
                     if (!this.url) return;
 
-                    const rawHeaders = this.headers.filter(h => h.key.trim() !== '');
+                    const rawHeaders = this.headers.filter(h => h.key.trim() !== '' && h.enabled !== false);
                     const rawQPs = this.queryParams.filter(qp => qp.key.trim() !== '' && qp.enabled !== false);
 
                     // Parse URL
