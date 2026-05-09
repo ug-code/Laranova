@@ -10,16 +10,23 @@
         <template x-for="(h, i) in headers" :key="i">
             <div class="flex gap-2 items-center">
                 <input
+                    type="checkbox"
+                    x-model="h.enabled"
+                    class="w-3.5 h-3.5 rounded border-[#2a2744] bg-[#1e1c3a] text-[#667eea] focus:ring-[#667eea]/30 shrink-0"
+                />
+                <input
                     type="text"
                     x-model="h.key"
                     placeholder="Key"
                     class="flex-1 rounded-lg border border-[#2a2744] bg-[#1e1c3a] px-2.5 py-1.5 text-sm font-mono text-gray-300 placeholder:text-gray-600 focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20 outline-none"
+                    :class="{'opacity-40': !h.enabled}"
                 />
                 <input
                     type="text"
                     x-model="h.value"
                     placeholder="Value"
                     class="flex-[2] rounded-lg border border-[#2a2744] bg-[#1e1c3a] px-2.5 py-1.5 text-sm font-mono text-gray-300 placeholder:text-gray-600 focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20 outline-none"
+                    :class="{'opacity-40': !h.enabled}"
                 />
                 <button
                     @click="removeHeader(i)"
