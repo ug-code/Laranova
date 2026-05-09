@@ -73,7 +73,7 @@
                         >
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
                         </svg>
-                        <span class="text-[11px] font-mono font-semibold text-gray-400 truncate" x-text="group.prefix || '/'"></span>
+                        <span class="text-[11px] font-mono font-semibold text-[#a78bfa] truncate" x-text="group.prefix || '/'"></span>
                         <span class="text-[9px] text-gray-600 ml-auto" x-text="group.routes.length"></span>
                     </button>
 
@@ -90,7 +90,8 @@
                                     :class="methodColor(route.methods[0])"
                                     x-text="route.methods[0]"
                                 ></span>
-                                <span class="text-[10px] font-mono text-gray-400 truncate" x-text="route.uri"></span>
+                                <span class="text-[10px] font-mono text-gray-300 truncate" x-text="route.uri"></span>
+                                <span class="text-[8px] font-mono text-gray-500 shrink-0" x-text="route.action"></span>
                                 <span x-show="route.has_file" class="text-[8px] font-mono text-amber-400 bg-amber-400/10 px-1 rounded shrink-0">file</span>
                             </div>
                             <div x-show="route.middleware && route.middleware.length" class="flex items-center gap-1 mt-0.5 ml-0">
