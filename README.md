@@ -3,7 +3,7 @@
 > **Postman-like API test interface, directly inside your Laravel application.**  
 > Zero configuration, local-only, session-backed, and fully extensible.
 
-[![Latest Version](https://img.shields.io/packagist/v/ug-code/laranova)](https://packagist.org/packages/ug-code/laranova)
+[![Latest Version](https://img.shields.io/github/v/tag/ug-code/Laranova?label=version&sort=semver)](https://packagist.org/packages/ug-code/laranova)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-7b7fb5)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-11.x_|_12.x-fb503b)](https://laravel.com)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
