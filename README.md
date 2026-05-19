@@ -17,6 +17,7 @@ You're debugging an API endpoint, testing validation rules, or inspecting a thir
 Laranova lives **inside your Laravel app**. It scans all your routes, auto-detects validation rules, generates fake data via Faker, and lets you send requests — all from a single-page interface served at `/laranova`.
 
 ---
+<img width="1917" height="872" alt="image" src="https://github.com/user-attachments/assets/92594af0-b3e0-4270-af13-169de867abb1" />
 
 ## Features
 
