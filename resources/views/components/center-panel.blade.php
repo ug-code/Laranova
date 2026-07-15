@@ -9,9 +9,13 @@
                     class="w-26 shrink-0 rounded-lg border border-[#2a2744] bg-[#1e1c3a] px-2.5 py-2 text-sm font-bold text-gray-200 shadow-sm focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20 outline-none"
                     :class="methodBgColor(method)"
                 >
-                    <template x-for="m in methods" :key="m">
-                        <option x-text="m" :value="m"></option>
-                    </template>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="HEAD">HEAD</option>
+                    <option value="OPTIONS">OPTIONS</option>
                 </select>
                 <input
                     type="text"

@@ -29,6 +29,9 @@
                         x-text="response.status || 'Error'"
                     ></span>
                     <span class="text-[11px] text-gray-500" x-text="response.duration + 'ms'"></span>
+                    <template x-if="sentPayload">
+                        <span class="text-[10px] font-mono text-gray-600 truncate ml-2" x-text="sentPayload.method + ' ' + sentPayload.url"></span>
+                    </template>
                     <span x-show="response.error" class="text-[11px] text-red-400 ml-auto">Connection Error</span>
                 </div>
 
