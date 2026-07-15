@@ -138,6 +138,13 @@
                     });
 
                     this.loadHistoryFromSession();
+
+                    window.addEventListener('hashchange', () => {
+                        if (this.parseHash()) {
+                            this.loadRouteFromHash();
+                        }
+                    });
+
                     this.refreshRoutes();
                 },
 
@@ -150,7 +157,11 @@
                         .then(data => {
                             this.routes = data.routes || [];
                             this.buildGroups();
-                            this.restoreLastRoute();
+                            if (this.parseHash()) {
+                                this.loadRouteFromHash();
+                            } else {
+                                this.restoreLastRoute();
+                            }
                         })
                         .catch(() => {})
                         .finally(() => { this.loadingRoutes = false; });
@@ -169,9 +180,7 @@
                             if (!this.openGroups.includes(group.prefix)) {
                                 this.openGroups.push(group.prefix);
                             }
-                            this.loadRoute(route);
-                            this.method = savedMethod;
-                            this.url = savedUrl;
+                            this.loadRoute(route, savedMethod);
                             localStorage.setItem('laranova_method', savedMethod);
                             localStorage.setItem('laranova_url', savedUrl);
                             setTimeout(() => {
@@ -187,6 +196,43 @@
                     this.url = savedUrl;
                     localStorage.setItem('laranova_method', savedMethod);
                     localStorage.setItem('laranova_url', savedUrl);
+                },
+
+                parseHash() {
+                    const hash = window.location.hash.slice(1);
+                    if (!hash) return null;
+                    for (const m of ['OPTIONS','HEAD','DELETE','PATCH','POST','PUT','GET']) {
+                        if (hash.startsWith(m) && hash.length > m.length) {
+                            return { method: m, uri: hash.slice(m.length) };
+                        }
+                    }
+                    return null;
+                },
+
+                loadRouteFromHash() {
+                    const parsed = this.parseHash();
+                    if (!parsed) return false;
+
+                    for (const group of this.routeGroups) {
+                        const route = group.routes.find(r =>
+                            r.uri === parsed.uri && (r.methods || []).includes(parsed.method)
+                        );
+                        if (route) {
+                            if (!this.openGroups.includes(group.prefix)) {
+                                this.openGroups.push(group.prefix);
+                            }
+                            this.loadRoute(route, parsed.method);
+                            setTimeout(() => {
+                                const key = parsed.method + '-' + route.uri;
+                                const el = document.querySelector(`[data-route-key="${key}"]`);
+                                if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                            }, 50);
+                            return true;
+                        }
+                    }
+                    this.method = parsed.method;
+                    this.url = parsed.uri;
+                    return true;
                 },
 
                 refreshGrouping() {
@@ -252,10 +298,14 @@
                     }
                 },
 
-                loadRoute(route) {
-                    this.method = route.methods[0];
+                loadRoute(route, forceMethod) {
+                    this.method = forceMethod || route.methods[0];
                     this.url = route.uri;
                     this.selectedRoute = route;
+                    const newHash = '#' + route.methods[0] + route.uri;
+                    if (window.location.hash !== newHash) {
+                        history.pushState(null, '', newHash);
+                    }
                     this.queryParams = [];
                     this.selectedFiles = [];
                     this.hasFileUpload = false;
