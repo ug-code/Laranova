@@ -66,6 +66,7 @@
                 selectedRoute: null,
                 groupBy: 'controller',
                 sortBy: 'uri',
+                searchQuery: '',
 
                 init() {
                     // ── Load persisted settings ──
@@ -84,6 +85,7 @@
                     this.$watch('sortBy', val => localStorage.setItem('laranova_sortBy', val));
                     this.$watch('method', val => localStorage.setItem('laranova_method', val));
                     this.$watch('url', val => localStorage.setItem('laranova_url', val));
+                    this.$watch('searchQuery', () => this.buildGroups());
 
                     // ── Variables: config defaults + localStorage ──
                     const savedVars = localStorage.getItem('laranova_variables');
@@ -240,10 +242,20 @@
                 },
 
                 buildGroups() {
-                    const routes = this.routes;
+                    let routes = this.routes;
                     if (routes.length === 0) {
                         this.routeGroups = [];
                         return;
+                    }
+
+                    const query = this.searchQuery.toLowerCase().trim();
+                    if (query) {
+                        routes = routes.filter(r =>
+                            r.uri.toLowerCase().includes(query) ||
+                            (r.controller || '').toLowerCase().includes(query) ||
+                            (r.action || '').toLowerCase().includes(query) ||
+                            (r.name || '').toLowerCase().includes(query)
+                        );
                     }
 
                     const groupMap = {};

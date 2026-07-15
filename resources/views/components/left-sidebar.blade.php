@@ -50,6 +50,20 @@
                 <span x-show="loadingRoutes" class="text-[10px] text-gray-500">Loading...</span>
             </div>
 
+            <div class="px-4 py-1.5 border-b border-[#2a2744]/50">
+                <div class="relative">
+                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input
+                        type="text"
+                        x-model.debounce.300ms="searchQuery"
+                        placeholder="Search routes..."
+                        class="w-full rounded-md border border-[#2a2744] bg-[#1e1c3a] pl-7 pr-2 py-1.5 text-[11px] font-mono text-gray-300 placeholder:text-gray-600 outline-none focus:border-[#667eea] focus:ring-1 focus:ring-[#667eea]/20"
+                    />
+                </div>
+            </div>
+
             <template x-if="routeGroups.length === 0 && !loadingRoutes">
                 <div class="px-4 py-10 text-center">
                     <svg class="w-8 h-8 text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
