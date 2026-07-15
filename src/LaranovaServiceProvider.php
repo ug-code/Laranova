@@ -53,7 +53,7 @@ class LaranovaServiceProvider extends ServiceProvider
             'as' => 'laranova.',
         ], function () {
             $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-        });
+        })->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
     }
 
     protected function registerViews(): void
